@@ -1,0 +1,128 @@
+// Gant build script 
+// Author: James Williams
+//
+//
+//
+groovyHome = System.getenv ( ).'GROOVY_HOME'
+
+if ( ( groovyHome == null ) || ( groovyHome == '' ) ) {
+  println ( 'Must set environment variable GROOVY_HOME to compile SwingX Builder.' )
+  return
+}
+
+
+def base_dir = new File("").canonicalPath
+def groovy_source_dir = "${base_dir}/src"
+def groovy_tests_dir = "${base_dir}/src/tests"
+def bin_dir = "${base_dir}/bin"
+def docs_dir = "${base_dir}/docs"
+
+def build_output_dir = "${base_dir}/build"
+def build_output_classes_dir = "${build_output_dir}/classes" 
+def build_output_tests_dir = "${build_output_dir}/tests" 
+def build_output_reports_dir = "${build_output_dir}/reports"
+def distribution_dir = "dist" 
+def distribution_lib_dir = "dist"
+def metadata_dir = build_output_classes_dir + '/META-INF'
+
+//The name used for the zip file produced by the package target
+def zip_name = 'pdfbuilder'
+
+//The name of the jar file containing the Groovy and Java classes
+jar_name = 'pdfbuilder.jar'
+
+
+includeTargets << gant.targets.Clean
+cleanPattern << [ '**/*~' ,  '**/*.bak' ]
+cleanDirectory << [build_output_dir]
+clobberDirectory << build_output_dir
+
+Ant.path ( id : 'installationJarSet' ) { fileset ( dir : base_dir + '/lib' , includes : '*.jar' ) }
+Ant.path ( id : 'pdfbuilder' ) { fileset (dir :  distribution_dir, includes: '*.jar') }
+Ant.path ( id : 'groovy_jar_set' ) { fileset ( dir : groovyHome + '/lib' , includes : '*.jar' ) }
+Ant.taskdef ( name : 'groovyc' , classname : 'org.codehaus.groovy.ant.Groovyc' , classpathref : 'groovy_jar_set' )
+
+makeManifest = {
+  Ant.mkdir ( dir : metadata_dir )
+  Ant.manifest ( file : metadata_dir + '/MANIFEST.MF' ) {
+    attribute ( name : 'Built-By' , value : 'jwill' )
+    attribute ( name : 'Extension-Name' , value : 'groovy-pdf' )
+    attribute ( name : 'Specification-Title' , value : 'PDF Builder' )
+  }
+}
+
+clean = {
+      Ant.delete(dir: distribution_dir + '/*.*')
+}
+
+task ( initialize : 'Initialize prior to a build' ) {
+  Ant.mkdir ( dir : build_output_dir )
+  Ant.mkdir ( dir : build_output_classes_dir )
+  Ant.mkdir ( dir : build_output_tests_dir )
+  Ant.mkdir ( dir : build_output_reports_dir )
+  Ant.mkdir ( dir : distribution_dir )
+  Ant.mkdir ( dir : groovy_tests_dir )
+}
+
+task ( compile : 'Compile all classes.' ) {
+  clean()
+  depends ( initialize )
+  makeManifest ( )  Ant.groovyc ( srcdir : groovy_source_dir , destDir : build_output_classes_dir ) {
+   classpath {
+	pathelement (location : build_output_classes_dir)
+	path (refid : 'installationJarSet' )
+   }
+  } 
+}
+
+task ( compile_tests : 'Compile all the tests.' ) {
+  depends ( compile )
+  Ant.groovyc ( srcdir : groovy_tests_dir , destdir : build_output_tests_dir ) {
+    classpath {
+      pathelement ( location : build_output_tests_dir )
+      pathelement ( location : build_output_classes_dir )
+      path ( refid : 'installationJarSet' )
+    }
+  }
+}
+
+task ( test : 'Run all the tests in the build.' ) {
+  depends ( compile_tests )
+  depends ( distro )
+  Ant.junit ( printsummary : 'yes' ) {
+    formatter ( type : 'plain' )
+    batchtest ( fork : 'no' , todir : build_output_reports_dir ) {
+      fileset ( dir : build_output_tests_dir , includes : '**/*Test.class' )
+    }
+    classpath {
+      pathelement ( location : build_output_tests_dir )
+      pathelement ( location : build_output_classes_dir )
+      path ( refid : 'groovy_jar_set' )
+      path ( refid : 'installationJarSet' )
+      path ( refid : 'pdfbuilder' )
+    }
+  }
+}
+
+task ( distro : 'Create a distribution of the project' ) {
+  clean()
+  depends( compile )
+  Ant.jar ( destfile : distribution_lib_dir + "/"+ jar_name , basedir : "build/classes", excludes: '*Test.*') 
+  Ant.copy ( todir : distribution_dir ) { 
+  		fileset ( dir : docs_dir , includes : '*.*' ) 
+  }
+}
+
+task ('package': 'Create a zip file containing a full distribution of the project' ){
+ depends ( distro ) 
+  def zip_destination = "${distribution_dir}/${zip_name}"
+  Ant.zip ( destfile : "${zip_destination}.zip" ) {
+    zipfileset ( dir : base_dir, includes: 'src/' )
+    zipfileset ( dir : distribution_dir, excludes: '*.zip')
+    zipfileset ( dir : base_dir, includes: 'docs/')
+    zipfileset ( dir : docs_dir )
+    zipfileset ( dir : base_dir, includes: '*.*')
+  }
+}
+
+task ( 'default' : 'The default target, compile.' ) { compile ( ) }
