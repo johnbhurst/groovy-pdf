@@ -18,6 +18,34 @@ import com.lowagie.text.pdf.*
 interface Facade {
 	def process() { }
 }
+
+//Facade to abstract functions for pages in a document
+public class PageFacade implements Facade {
+	def pageSize
+	def document
+	def content = []
+	
+	void add(item) {
+		println "adding item"
+		content.add(item)
+	}
+	def process(parent) {
+		println "pageFacade = "+parent
+		document = parent
+		process()
+	}
+	def process() {
+		println "processing"
+		println document
+
+		document.setPageSize(pageSize)
+		document.newPage()
+		for(item in content) {
+			document.add(item)
+		}
+	}
+}
+
 public class ImageFacade implements Facade{
 	String url
 	Image image

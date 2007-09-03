@@ -16,6 +16,7 @@ def groovy_source_dir = "${base_dir}/src"
 def groovy_tests_dir = "${base_dir}/src/tests"
 def bin_dir = "${base_dir}/bin"
 def docs_dir = "${base_dir}/docs"
+def example_dir = "${base_dir}/examples"
 
 def build_output_dir = "${base_dir}/build"
 def build_output_classes_dir = "${build_output_dir}/classes" 
@@ -41,7 +42,7 @@ Ant.path ( id : 'installationJarSet' ) { fileset ( dir : base_dir + '/lib' , inc
 Ant.path ( id : 'pdfbuilder' ) { fileset (dir :  distribution_dir, includes: '*.jar') }
 Ant.path ( id : 'groovy_jar_set' ) { fileset ( dir : groovyHome + '/lib' , includes : '*.jar' ) }
 Ant.taskdef ( name : 'groovyc' , classname : 'org.codehaus.groovy.ant.Groovyc' , classpathref : 'groovy_jar_set' )
-
+Ant.taskdef (name:'groovy',  classname:'org.codehaus.groovy.ant.Groovy' )
 makeManifest = {
   Ant.mkdir ( dir : metadata_dir )
   Ant.manifest ( file : metadata_dir + '/MANIFEST.MF' ) {
@@ -67,7 +68,8 @@ task ( initialize : 'Initialize prior to a build' ) {
 task ( compile : 'Compile all classes.' ) {
   clean()
   depends ( initialize )
-  makeManifest ( )  Ant.groovyc ( srcdir : groovy_source_dir , destDir : build_output_classes_dir ) {
+  makeManifest ( )
+  Ant.groovyc ( srcdir : groovy_source_dir , destDir : build_output_classes_dir ) {
    classpath {
 	pathelement (location : build_output_classes_dir)
 	path (refid : 'installationJarSet' )
@@ -91,7 +93,7 @@ task ( test : 'Run all the tests in the build.' ) {
   depends ( distro )
   Ant.junit ( printsummary : 'yes' ) {
     formatter ( type : 'plain' )
-    batchtest ( fork : 'no' , todir : build_output_reports_dir ) {
+    batchtest ( fork : 'yes' , todir : build_output_reports_dir ) {
       fileset ( dir : build_output_tests_dir , includes : '**/*Test.class' )
     }
     classpath {
@@ -101,6 +103,25 @@ task ( test : 'Run all the tests in the build.' ) {
       path ( refid : 'installationJarSet' )
       path ( refid : 'pdfbuilder' )
     }
+  }
+}
+
+task ( 'run-examples' : 'Run all the example programs in the build.' ) {
+  depends ( distro )
+  Ant.mkdir ( dir : example_dir + '/output' )
+  for(file in new File(example_dir).listFiles()) {
+	println file.getPath()
+  	if (file.isFile()) {
+		Ant.groovy(src: file.getPath()) {
+			classpath {
+			  pathelement ( location : build_output_tests_dir )
+			  pathelement ( location : build_output_classes_dir )
+			  path ( refid : 'groovy_jar_set' )
+			  path ( refid : 'installationJarSet' )
+			  path ( refid : 'pdfbuilder' )
+			}
+		}
+	}
   }
 }
 

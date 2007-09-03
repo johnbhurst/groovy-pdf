@@ -59,6 +59,7 @@ public class PDFBuilder extends BuilderSupport{
 		registerBeanFactory("row", PdfPRow.class)
 		registerBeanFactory("alignedText", AlignedTextFacade.class)
 		registerBeanFactory("directContent", DirectContentFacade.class)
+		registerBeanFactory("page", PageFacade.class)
     }
 	
     Object createNode(name) {
@@ -85,7 +86,7 @@ public class PDFBuilder extends BuilderSupport{
 			processAttributes(name,widget,attributes)
 			return widget
 		}
-		String widgetName = (String) attributes.remove("id")
+		String widgetName = (String) attributes?.remove("id")
         if (factory == null) {
             log.log(Level.WARNING, "Could not find match for name: " + name)
             return null
@@ -113,16 +114,16 @@ public class PDFBuilder extends BuilderSupport{
 	
 	void processAttributes(widgetName, widget, attributes) {
 		println "processing attrib "+ widget
-		/*if (widget instanceof Chunk || widget instanceof Paragraph || widget instanceof Phrase) {
+		if (widget instanceof Chunk || widget instanceof Paragraph || widget instanceof Phrase) {
 			if (attributes.text != null) {
 				widget.add(new Chunk(attributes.remove("text")))
 			}
 		}
-		else*/ if ( widget instanceof Document) {
-			attributes.each{println it}
+		if ( widget instanceof Document) {
 			if (attributes.filename != null) {
 				println "reading filename"
-				writer = PdfWriter.getInstance(widget, new FileOutputStream(attributes.remove("filename")))
+				def filename = attributes.remove('filename')
+				writer = PdfWriter.getInstance(widget, new FileOutputStream(filename))
 				widget.open()
 			}
 		}
@@ -140,13 +141,16 @@ public class PDFBuilder extends BuilderSupport{
 	}
 	
 	void setParent(parent,child) {
-
+		
 	}
 	
 	void nodeCompleted(parent,node) {
 		println parent
 		println node
-		if (node instanceof Document) {
+		if (node instanceof Paragraph) {
+			parent.add(node)
+		}
+		else if (node instanceof Document) {
 			println "closing document"
 			node.close()
 		}
@@ -157,11 +161,14 @@ public class PDFBuilder extends BuilderSupport{
 		else if (node instanceof TableFacade)
 			node.process()
 		else if (node instanceof AlignedTextFacade) {
-				println "here"
 				parent.add(node)
 		}
 		else if (parent instanceof TableFacade) {
 			parent.add(node)
+		}
+		else if (node instanceof PageFacade) {
+			println "pageFacade completed"
+			node.process(parent)
 		}
 		
 	}
