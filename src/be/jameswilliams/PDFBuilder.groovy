@@ -39,6 +39,7 @@ public class PDFBuilder extends BuilderSupport{
     public shortcuts = [:]
     Map widgets = [:]
     def document
+    def metadata = ['title', 'subject', 'keywords', 'creator', 'author']
     
 	PDFBuilder() {
 		registerComponents()
@@ -143,6 +144,15 @@ public class PDFBuilder extends BuilderSupport{
 		/*else if (widgetName == "writeDirectTextContent") {
 			widget.add(attributes)
 		}*/
+		
+		//Handle metadata properties
+		//These must be set BEFORE the document is opened.
+		for (entry in metadata) {
+			if (attributes[entry] != null) {
+				def methodName = "add" + entry.substring(0,1).toUpperCase() + entry.substring(1,entry.size())
+				InvokerHelper.invokeMethod(document, methodName, attributes.remove(entry))
+			}
+		}
 		for (entry in attributes) {
 			println widgetName +" "+ entry
             String property = entry.getKey().toString()
