@@ -116,15 +116,19 @@ public class PDFBuilder extends BuilderSupport{
 		println "processing attrib "+ widget
 		if (widget instanceof Chunk || widget instanceof Paragraph || widget instanceof Phrase) {
 			if (attributes.text != null) {
+				println widgetName
 				widget.add(new Chunk(attributes.remove("text")))
 			}
 		}
 		if ( widget instanceof Document) {
 			if (attributes.filename != null) {
-				println "reading filename"
 				def filename = attributes.remove('filename')
 				writer = PdfWriter.getInstance(widget, new FileOutputStream(filename))
-				widget.open()
+			}
+			//margins need to be specially handled
+			if (attributes.margins != null) {
+				def margins = attributes.remove("margins")
+				widget.setMargins(margins[0], margins[1], margins[2], margins[3])
 			}
 		}
 		/*else if (widgetName == "writeDirectTextContent") {
@@ -138,6 +142,11 @@ public class PDFBuilder extends BuilderSupport{
 				InvokerHelper.setProperty(widget, property, value)
 			else InvokerHelper.setProperty(widget, property, new StringBuffer(value))
         }
+        
+        //Document instance is split so properties are properly set
+        //before opening the document.
+        if (widget instanceof Document)
+        	widget.open()
 	}
 	
 	void setParent(parent,child) {
