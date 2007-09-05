@@ -38,6 +38,7 @@ public class PDFBuilder extends BuilderSupport{
 	private elements = [ ]
     public shortcuts = [:]
     Map widgets = [:]
+    def document
     
 	PDFBuilder() {
 		registerComponents()
@@ -52,7 +53,7 @@ public class PDFBuilder extends BuilderSupport{
 		registerBeanFactory("document", Document.class)
 		registerBeanFactory("paragraph", Paragraph.class)
 		registerBeanFactory("phrase", Phrase.class)
-		registerBeanFactory("chunk", Chunk.class)
+		//registerBeanFactory("chunk", Chunk.class)
 		registerBeanFactory("image", ImageFacade.class)
 		registerBeanFactory("table", TableFacade.class)
 		registerBeanFactory("cell", TableCellFacade.class)
@@ -60,6 +61,7 @@ public class PDFBuilder extends BuilderSupport{
 		registerBeanFactory("alignedText", AlignedTextFacade.class)
 		registerBeanFactory("directContent", DirectContentFacade.class)
 		registerBeanFactory("page", PageFacade.class)
+		registerBeanFactory("widget", WidgetFacade.class)
     }
 	
     Object createNode(name) {
@@ -86,19 +88,18 @@ public class PDFBuilder extends BuilderSupport{
 			processAttributes(name,widget,attributes)
 			return widget
 		}
+		
 		String widgetName = (String) attributes?.remove("id")
         if (factory == null) {
             log.log(Level.WARNING, "Could not find match for name: " + name)
             return null
         }
+                
         try {
             widget = factory()
 			if (widget == null) {
                 log.log(Level.WARNING, "Factory for name: " + name + " returned null")
                 return null
-            }
-            if (widgetName != null) {
-                //widgets.put(widgetName, widget);
             }
             if (log.isLoggable(Level.FINE)) {
                 log.fine("For name: " + name + " created widget: " + widget)
@@ -114,13 +115,21 @@ public class PDFBuilder extends BuilderSupport{
 	
 	void processAttributes(widgetName, widget, attributes) {
 		println "processing attrib "+ widget
-		if (widget instanceof Chunk || widget instanceof Paragraph || widget instanceof Phrase) {
+		if ( widget instanceof Paragraph || widget instanceof Phrase) {
 			if (attributes.text != null) {
 				println widgetName
 				widget.add(new Chunk(attributes.remove("text")))
 			}
+			if (attributes.margins != null) {
+				def margins = attributes.remove("margins")
+				document.setMargins(margins[0], margins[1], margins[2], margins[3])
+			}
+			if (attributes.marginMirroring != null) {
+				document.setMarginMirroring(attributes.remove("marginMirroring"))
+			}
 		}
 		if ( widget instanceof Document) {
+			document = widget
 			if (attributes.filename != null) {
 				def filename = attributes.remove('filename')
 				writer = PdfWriter.getInstance(widget, new FileOutputStream(filename))
@@ -144,19 +153,21 @@ public class PDFBuilder extends BuilderSupport{
         }
         
         //Document instance is split so properties are properly set
-        //before opening the document.
-        if (widget instanceof Document)
+        //before opening the document and that the document is
+        //opened only once.
+        if (widget instanceof Document && !widget.isOpen())
         	widget.open()
 	}
 	
-	void setParent(parent,child) {
-		
-	}
+	void setParent(parent,child) {	}
 	
 	void nodeCompleted(parent,node) {
 		println parent
 		println node
-		if (node instanceof Paragraph) {
+		if (node instanceof Chunk) {
+			parent.add(node)
+		}
+		else if (node instanceof Paragraph) {
 			parent.add(node)
 		}
 		else if (node instanceof Document) {
@@ -177,6 +188,9 @@ public class PDFBuilder extends BuilderSupport{
 		}
 		else if (node instanceof PageFacade) {
 			println "pageFacade completed"
+			node.process(parent)
+		}
+		else if (node instanceof WidgetFacade) {
 			node.process(parent)
 		}
 		

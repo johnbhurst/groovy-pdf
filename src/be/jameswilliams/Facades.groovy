@@ -19,6 +19,20 @@ interface Facade {
 	def process() { }
 }
 
+public class WidgetFacade implements Facade {
+	def value
+	def parent
+	def process(parent) { 
+		this.parent = parent
+		process()
+	}
+	def process() {
+		println "Parent is:"+parent
+		println "Value is:"+value
+		parent.add(value)
+	}
+}
+
 //Facade to abstract functions for pages in a document
 public class PageFacade implements Facade {
 	def pageSize
