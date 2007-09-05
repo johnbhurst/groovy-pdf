@@ -17,7 +17,7 @@ import com.lowagie.text.FontFactory
 import com.lowagie.text.Phrase
 import com.lowagie.text.Image
 
-// The builder seems to not like rotated PageSize set as the document page size 
+
 try {
 	def builder = new PDFBuilder()
 	def file = 'examples' + File.separator + 'output' + File.separator + 'CustomPageSize.pdf'
