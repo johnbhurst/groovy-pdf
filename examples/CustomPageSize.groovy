@@ -1,6 +1,6 @@
 //CustomPageSize.groovy
 //
-// @ jwill
+// @author jwill
 import be.jameswilliams.PDFBuilder
 import com.lowagie.text.pdf.*
 import com.lowagie.text.PageSize
