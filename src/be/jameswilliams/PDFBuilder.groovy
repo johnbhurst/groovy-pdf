@@ -19,6 +19,8 @@ import com.lowagie.text.DocumentException
 import com.lowagie.text.Paragraph
 import com.lowagie.text.PageSize
 import com.lowagie.text.pdf.PdfWriter
+import com.lowagie.text.rtf.RtfWriter2
+import com.lowagie.text.html.HtmlWriter
 import com.lowagie.text.Chunk
 import com.lowagie.text.Font
 import com.lowagie.text.FontFactory
@@ -34,7 +36,7 @@ import org.codehaus.groovy.runtime.InvokerHelper
 public class PDFBuilder extends BuilderSupport{
 	private Logger log = Logger.getLogger(getClass().getName())
     private Map factories = new HashMap()
-	static writer
+	public writers = []
 	private elements = [ ]
     public shortcuts = [:]
     Map widgets = [:]
@@ -133,7 +135,11 @@ public class PDFBuilder extends BuilderSupport{
 			document = widget
 			if (attributes.filename != null) {
 				def filename = attributes.remove('filename')
-				writer = PdfWriter.getInstance(widget, new FileOutputStream(filename))
+				if (filename.endsWith('.pdf'))
+					writers.add(PdfWriter.getInstance(widget, new FileOutputStream(filename)))
+				else if (filename.endsWith('.rtf'))
+					writers.add(RtfWriter2.getInstance(widget, new FileOutputStream(filename)))
+				else writers.add(HtmlWriter.getInstance(widget, new FileOutputStream(filename)))
 			}
 			//margins need to be specially handled
 			if (attributes.margins != null) {
