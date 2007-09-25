@@ -52,7 +52,8 @@ public class PageFacade implements Facade {
 		println "processing"
 		println document
 
-		document.setPageSize(pageSize)
+		if (pageSize != null)
+			document.setPageSize(pageSize)
 		document.newPage()
 		for(item in content) {
 			document.add(item)

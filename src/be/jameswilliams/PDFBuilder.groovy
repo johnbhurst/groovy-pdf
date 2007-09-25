@@ -146,6 +146,12 @@ public class PDFBuilder extends BuilderSupport{
 				def margins = attributes.remove("margins")
 				widget.setMargins(margins[0], margins[1], margins[2], margins[3])
 			}
+			if (attributes.pdfVersion != null) {
+				def version = attributes.remove("pdfVersion")
+				def writer = writers.find { it instanceof PdfWriter }
+				if (writer != null)
+					writer.setPdfVersion(version)
+			}
 		}
 		/*else if (widgetName == "writeDirectTextContent") {
 			widget.add(attributes)
@@ -154,7 +160,7 @@ public class PDFBuilder extends BuilderSupport{
 		//Handle metadata properties
 		//These must be set BEFORE the document is opened.
 		for (entry in metadata) {
-			if (attributes[entry] != null) {
+			if (attributes != null && attributes[entry] != null) {
 				def methodName = "add" + entry.substring(0,1).toUpperCase() + entry.substring(1,entry.size())
 				InvokerHelper.invokeMethod(document, methodName, attributes.remove(entry))
 			}
