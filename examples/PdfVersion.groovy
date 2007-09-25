@@ -1,7 +1,7 @@
 //PdfVersion.groovy
 //
 // @author jwill
-import be.jameswilliams.PDFBuilder
+import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.pdf.*
 
 try {

@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations 
 // under the License.
 //  Author : James Williams
-package be.jameswilliams
+package be.jameswilliams.pdf
 import com.lowagie.text.*
 import com.lowagie.text.pdf.*
 interface Facade {

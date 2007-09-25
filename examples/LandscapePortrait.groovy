@@ -1,7 +1,7 @@
 //LandscapePortrait.groovy
 //
 // @author jwill
-import be.jameswilliams.PDFBuilder
+import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.pdf.*
 import com.lowagie.text.PageSize
 import com.lowagie.text.Rectangle

@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations 
 // under the License.
 //  Author : James Williams
-package be.jameswilliams
+package be.jameswilliams.pdf
 
 import com.lowagie.text.Document
 import com.lowagie.text.DocumentException
@@ -33,6 +33,8 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import groovy.util.BuilderSupport
 import org.codehaus.groovy.runtime.InvokerHelper
+import be.jameswilliams.pdf.factory.*
+
 public class PDFBuilder extends BuilderSupport{
 	private Logger log = Logger.getLogger(getClass().getName())
     private Map factories = new HashMap()
@@ -54,9 +56,9 @@ public class PDFBuilder extends BuilderSupport{
 	
     void registerComponents() {
 		registerBeanFactory("document", Document.class)
-		registerBeanFactory("paragraph", Paragraph.class)
-		registerBeanFactory("phrase", Phrase.class)
-		//registerBeanFactory("chunk", Chunk.class)
+		registerFactory("paragraph", new TextComponentFactory(Paragraph.class))
+		registerFactory("phrase", new TextComponentFactory(Phrase.class))
+		registerFactory("chunk", new TextComponentFactory(Chunk.class))
 		registerBeanFactory("image", ImageFacade.class)
 		registerBeanFactory("table", TableFacade.class)
 		registerBeanFactory("cell", TableCellFacade.class)
@@ -81,7 +83,7 @@ public class PDFBuilder extends BuilderSupport{
 	
 	Object createNode(name, Map attributes, value) {
 		def widget = null
-		def factory = (Closure) factories.get(name)
+		def factory = (Factory) factories.get(name)
 		
 		// stuff with getInstance methods have to be
 		// handled differently
@@ -99,7 +101,7 @@ public class PDFBuilder extends BuilderSupport{
         }
                 
         try {
-            widget = factory()
+            widget = factory.newInstance(this, name, value, attributes)
 			if (widget == null) {
                 log.log(Level.WARNING, "Factory for name: " + name + " returned null")
                 return null
@@ -119,21 +121,21 @@ public class PDFBuilder extends BuilderSupport{
 	void processAttributes(widgetName, widget, attributes) {
 		println "processing attrib "+ widget
 		if ( widget instanceof Paragraph || widget instanceof Phrase) {
-			if (attributes.text != null) {
+			if (attributes?.text != null) {
 				println widgetName
 				widget.add(new Chunk(attributes.remove("text")))
 			}
-			if (attributes.margins != null) {
+			if (attributes?.margins != null) {
 				def margins = attributes.remove("margins")
 				document.setMargins(margins[0], margins[1], margins[2], margins[3])
 			}
-			if (attributes.marginMirroring != null) {
+			if (attributes?.marginMirroring != null) {
 				document.setMarginMirroring(attributes.remove("marginMirroring"))
 			}
 		}
 		if ( widget instanceof Document) {
 			document = widget
-			if (attributes.filename != null) {
+			if (attributes?.filename != null) {
 				def filename = attributes.remove('filename')
 				if (filename.endsWith('.pdf'))
 					writers.add(PdfWriter.getInstance(widget, new FileOutputStream(filename)))
@@ -142,11 +144,11 @@ public class PDFBuilder extends BuilderSupport{
 				else writers.add(HtmlWriter.getInstance(widget, new FileOutputStream(filename)))
 			}
 			//margins need to be specially handled
-			if (attributes.margins != null) {
+			if (attributes?.margins != null) {
 				def margins = attributes.remove("margins")
 				widget.setMargins(margins[0], margins[1], margins[2], margins[3])
 			}
-			if (attributes.pdfVersion != null) {
+			if (attributes?.pdfVersion != null) {
 				def version = attributes.remove("pdfVersion")
 				def writer = writers.find { it instanceof PdfWriter }
 				if (writer != null)
@@ -218,16 +220,6 @@ public class PDFBuilder extends BuilderSupport{
 		
 	}
 	
-	def createFactory = { a -> return { return a.newInstance() } }
-
-    public void registerBeanFactory(String name, final Class beanClass) {
-        registerFactory(name, createFactory(beanClass))
-    }
-    
-    public void registerFactory(String name, Closure factory) {
-        factories.put(name, factory);
-    }
-	
 	public void addShortcut(className, propName, shortcut) {
 		if (shortcuts[className] !=null) {
 			shortcuts[className].put(shortcut,propName)
@@ -238,4 +230,39 @@ public class PDFBuilder extends BuilderSupport{
 		}
     }
 	
+	//Utility functions borrowed from SwingBuilder.groovy in groovy main
+	public void registerFactory(String name, Factory factory) {
+        factories.put(name, factory);
+    }
+	
+	public void registerBeanFactory(String theName, final Class beanClass) {
+        registerFactory(theName, new BeanFactory(beanClass));
+    }
+	
+	public static boolean checkValueIsType(Object value, Object name, Class type) {
+        if (value != null) {
+            if (type.isAssignableFrom(value.getClass())) {
+                return true;
+            } else {
+                throw new RuntimeException("The value argument of $name must be of type $type.name");
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean checkValueIsTypeNotString(Object value, Object name, Class type) {
+        if (value != null) {
+            if (type.isAssignableFrom(value.getClass())) {
+                return true;
+            } else if (value instanceof String) {
+                return false;
+            } else {
+                throw new RuntimeException("The value argument of $name must be of type $type.name or a String.");
+            }
+        } else {
+            return false;
+        }
+    }
+
 }
