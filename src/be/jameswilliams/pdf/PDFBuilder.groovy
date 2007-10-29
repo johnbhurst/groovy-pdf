@@ -85,15 +85,6 @@ public class PDFBuilder extends BuilderSupport{
 		def widget = null
 		def factory = (Factory) factories.get(name)
 		
-		// stuff with getInstance methods have to be
-		// handled differently
-		// move to custom factories later
-		if (name == "chunk") {
-			widget = new Chunk(attributes.remove("text"))
-			processAttributes(name,widget,attributes)
-			return widget
-		}
-		
 		String widgetName = (String) attributes?.remove("id")
         if (factory == null) {
             log.log(Level.WARNING, "Could not find match for name: " + name)
@@ -119,10 +110,10 @@ public class PDFBuilder extends BuilderSupport{
 	}
 	
 	void processAttributes(widgetName, widget, attributes) {
-		println "processing attrib "+ widget
+		//println "processing attrib "+ widget
 		if ( widget instanceof Paragraph || widget instanceof Phrase) {
 			if (attributes?.text != null) {
-				println widgetName
+				//println widgetName
 				widget.add(new Chunk(attributes.remove("text")))
 			}
 			if (attributes?.margins != null) {

@@ -33,21 +33,23 @@ public class TextComponentFactory implements Factory {
         }
         
         Object widget = klazz.newInstance()
-        
+        def text
         if (value instanceof String) {
             // this does not create property setting order issues, since the value arg preceeds all properties in the builder element
             switch(widget) {
-            	case Chunk:
-            		widget.append(value)
+            	case Chunk:case Phrase:case Paragraph:
+            		text = new Chunk(value)
             		break
-            	case Phrase:
-            		widget.add(new Chunk(value))
-            		break
-            	case Paragraph:
-            		widget.add(new Phrase(value))
-            		break
-            }
-            		
+            }	
+        }
+        else { 
+        	if (properties.text != null) {
+        		text = new Chunk(properties.remove("text"))
+        	}
+        }
+        if (text != null) {
+        	builder.processAttributes(name, text, properties)
+        	widget.add(text)
         }
         println "returning "+widget.class
         return widget

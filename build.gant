@@ -6,7 +6,7 @@
 groovyHome = System.getenv ( ).'GROOVY_HOME'
 
 if ( ( groovyHome == null ) || ( groovyHome == '' ) ) {
-  println ( 'Must set environment variable GROOVY_HOME to compile SwingX Builder.' )
+  println ( 'Must set environment variable GROOVY_HOME to compile PDF Builder.' )
   return
 }
 
@@ -56,7 +56,7 @@ clean = {
       Ant.delete(dir: distribution_dir + '/*.*')
 }
 
-task ( initialize : 'Initialize prior to a build' ) {
+target ( initialize : 'Initialize prior to a build' ) {
   Ant.mkdir ( dir : build_output_dir )
   Ant.mkdir ( dir : build_output_classes_dir )
   Ant.mkdir ( dir : build_output_tests_dir )
@@ -65,7 +65,7 @@ task ( initialize : 'Initialize prior to a build' ) {
   Ant.mkdir ( dir : groovy_tests_dir )
 }
 
-task ( compile : 'Compile all classes.' ) {
+target ( compile : 'Compile all classes.' ) {
   clean()
   depends ( initialize )
   makeManifest ( )
@@ -77,7 +77,7 @@ task ( compile : 'Compile all classes.' ) {
   } 
 }
 
-task ( compile_tests : 'Compile all the tests.' ) {
+target ( compile_tests : 'Compile all the tests.' ) {
   depends ( compile )
   Ant.groovyc ( srcdir : groovy_tests_dir , destdir : build_output_tests_dir ) {
     classpath {
@@ -88,7 +88,7 @@ task ( compile_tests : 'Compile all the tests.' ) {
   }
 }
 
-task ( test : 'Run all the tests in the build.' ) {
+target ( test : 'Run all the tests in the build.' ) {
   depends ( compile_tests )
   depends ( distro )
   Ant.junit ( printsummary : 'yes' ) {
@@ -106,7 +106,7 @@ task ( test : 'Run all the tests in the build.' ) {
   }
 }
 
-task ( 'run-examples' : 'Run all the example programs in the build.' ) {
+target ( 'run-examples' : 'Run all the example programs in the build.' ) {
   depends ( distro )
   Ant.mkdir ( dir : example_dir + '/output' )
   for(file in new File(example_dir).listFiles()) {
@@ -125,7 +125,7 @@ task ( 'run-examples' : 'Run all the example programs in the build.' ) {
   }
 }
 
-task ( distro : 'Create a distribution of the project' ) {
+target ( distro : 'Create a distribution of the project' ) {
   clean()
   depends( compile )
   Ant.jar ( destfile : distribution_lib_dir + "/"+ jar_name , basedir : "build/classes", excludes: '*Test.*') 
@@ -134,7 +134,7 @@ task ( distro : 'Create a distribution of the project' ) {
   }
 }
 
-task ('package': 'Create a zip file containing a full distribution of the project' ){
+target ('package': 'Create a zip file containing a full distribution of the project' ){
  depends ( distro ) 
   def zip_destination = "${distribution_dir}/${zip_name}"
   Ant.zip ( destfile : "${zip_destination}.zip" ) {
@@ -146,4 +146,4 @@ task ('package': 'Create a zip file containing a full distribution of the projec
   }
 }
 
-task ( 'default' : 'The default target, compile.' ) { compile ( ) }
+target ( 'default' : 'The default target, compile.' ) { compile ( ) }

@@ -23,7 +23,7 @@ try {
 			new Font(Font.TIMES_ROMAN, Font.DEFAULTSIZE, Font.BOLDITALIC),
 			new Font(Font.SYMBOL),
 			new Font(Font.ZAPFDINGBATS)]
-	def a = builder.document(filename:file, pdfVersion:PdfWriter.VERSION_1_2){
+	def a = builder.document(filename:file){
 		for(f in fonts) 
 			paragraph(text:"quick brown fox jumps over the lazy dog",font:f)
 	}
