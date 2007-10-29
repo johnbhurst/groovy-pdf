@@ -1,4 +1,4 @@
-//FontFactoryType1Fonts.groovy
+//UnicodeExample.groovy
 //
 // Generates a PDF with the 14 Standard Type 1 Fonts (using FontFactory).
 // @author jwill
