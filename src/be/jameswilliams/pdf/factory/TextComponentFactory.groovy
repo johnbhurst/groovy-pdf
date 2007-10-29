@@ -48,7 +48,15 @@ public class TextComponentFactory implements Factory {
         	}
         }
         if (text != null) {
-        	builder.processAttributes(name, text, properties)
+        	//Try to process whatever properties can be consumed
+        	//at the chunk level, then process the rest at the next
+        	//level up.
+        	try {
+        		builder.processAttributes(name, text, properties)
+        	}
+        	catch (Exception e) {
+        		builder.processAttributes(name, widget, properties)
+        	}
         	widget.add(text)
         }
         println "returning "+widget.class

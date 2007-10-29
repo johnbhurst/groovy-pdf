@@ -58,7 +58,7 @@ public class PDFBuilder extends BuilderSupport{
 		registerBeanFactory("document", Document.class)
 		registerFactory("paragraph", new TextComponentFactory(Paragraph.class))
 		registerFactory("phrase", new TextComponentFactory(Phrase.class))
-		registerFactory("chunk", new TextComponentFactory(Chunk.class))
+		registerFactory("chunk", new TextComponentFactory(Phrase.class))
 		registerBeanFactory("image", ImageFacade.class)
 		registerBeanFactory("table", TableFacade.class)
 		registerBeanFactory("cell", TableCellFacade.class)
@@ -180,9 +180,10 @@ public class PDFBuilder extends BuilderSupport{
 		println parent
 		println node
 		if (node instanceof Chunk) {
+			println "node is chunk"
 			parent.add(node)
 		}
-		else if (node instanceof Paragraph) {
+		else if ((node instanceof Paragraph || node instanceof Phrase) && !(parent instanceof Chunk)) {
 			parent.add(node)
 		}
 		else if (node instanceof Document) {
