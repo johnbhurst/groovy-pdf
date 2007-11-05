@@ -14,53 +14,108 @@
 //  @author James Williams
 
 package be.jameswilliams.pdf.factory
+import groovy.util.Factory
 import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.Chunk
 import com.lowagie.text.Phrase
 import com.lowagie.text.Paragraph
+import org.codehaus.groovy.runtime.InvokerHelper
 
 public class TextComponentFactory implements Factory {
 	
 	Class klazz
+	def nodeName
 
 	public TextComponentFactory(Class klazz) {
 		this.klazz = klazz
 	}
 	
-	public Object newInstance(PDFBuilder builder, Object name, Object value, Map properties) throws InstantiationException, IllegalAccessException {
-        if (PDFBuilder.checkValueIsTypeNotString(value, name, klazz)) {
+	//This node can have subnodes if it is a Paragraph or Phrase.
+	boolean isLeaf() { 
+		switch (klazz) {
+			case Paragraph: case Phrase:
+				return false
+				break
+			default:
+				return true 
+				break
+		}	
+	}
+	
+	public Object newInstance(FactoryBuilderSupport builder, Object name, Object value, Map properties) throws InstantiationException, IllegalAccessException {
+        if (builder.checkValueIsTypeNotString(value, name, klazz)) {
             return value
         }
+        Chunk chunk
+        Object widget = klazz.newInstance() 
         
-        Object widget = klazz.newInstance()
-        def text
         if (value instanceof String) {
             // this does not create property setting order issues, since the value arg preceeds all properties in the builder element
-            switch(widget) {
-            	case Chunk:case Phrase:case Paragraph:
-            		text = new Chunk(value)
-            		break
-            }	
+            chunk = new Chunk(value)	
         }
         else { 
         	if (properties.text != null) {
-        		text = new Chunk(properties.remove("text"))
+        		chunk = new Chunk(properties.remove("text"))
         	}
         }
-        if (text != null) {
-        	//Try to process whatever properties can be consumed
-        	//at the chunk level, then process the rest at the next
-        	//level up.
-        	try {
-        		builder.processAttributes(name, text, properties)
-        	}
-        	catch (Exception e) {
-        		builder.processAttributes(name, widget, properties)
-        	}
-        	widget.add(text)
-        }
-        println "returning "+widget.class
+        globalAttributes(builder, properties)
+        handleNodeAttributes(chunk, properties)
+      //  if (widget instanceof Phrase || widget instanceof Paragraph)
+        	widget.add(chunk)
+       // else widget = new Chunk(chunk)
+        
+        if (builder.debug)
+        	println "returning "+widget.class
+        	
+        println "completedNode"+widget
+    	if (nodeName != null) {
+    		builder.registeredNodes.put( nodeName, widget)
+    	}
+        
         return widget
     } 
+    
+    void globalAttributes(FactoryBuilderSupport builder, Map properties) {
+    	if (properties?.margins != null) {
+    		if (builder.debug)
+    			println "margins"
+			def margins = properties.remove("margins")
+			builder.document.setMargins(margins[0], margins[1], margins[2], margins[3])
+			if (builder.debug) {
+			//	builder.document.properties.each { println it }
+				def a = builder.document
+			//	println "Margins: ${a.marginLeft} ${a.marginRight} ${a.marginTop} ${a.marginBottom}"
+			}
+		}
+		if (properties?.marginMirroring != null) {
+			def mirroring = properties.remove("marginMirroring")
+			builder.document.setMarginMirroring(mirroring)
+		}
+    }
+    
+    void handleNodeAttributes(Chunk chunk, Map properties) {  
+    	nodeName = properties.remove("name")
+    	for (entry in properties) {
+            String property = entry.getKey().toString()
+            Object val = entry.getValue()
+			if (property != "content")
+				InvokerHelper.setProperty(chunk, property, val)
+			else InvokerHelper.setProperty(chunk, property, val)
+        }
+    }
+    
+    boolean onHandleNodeAttributes(FactoryBuilderSupport builder, Object node, Map attributes) {
+    	return false
+    }
+	void setParent( FactoryBuilderSupport builder, Object parent, Object child ) {
+		if (parent instanceof PageFactory) {
+			println "adding content"
+			parent.content += child
+		}
+	}
+	void setChild( FactoryBuilderSupport builder, Object parent, Object child ) { }
 	
+	void onNodeCompleted(FactoryBuilderSupport builder, Object parent, Object node) {
+		
+	}
 }

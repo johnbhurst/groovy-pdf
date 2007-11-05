@@ -13,9 +13,9 @@
 // under the License.
 //  Author : James Williams
 package be.jameswilliams.pdf
-
 import com.lowagie.text.Document
 import com.lowagie.text.DocumentException
+
 import com.lowagie.text.Paragraph
 import com.lowagie.text.PageSize
 import com.lowagie.text.pdf.PdfWriter
@@ -33,17 +33,19 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import groovy.util.BuilderSupport
 import org.codehaus.groovy.runtime.InvokerHelper
+import be.jameswilliams.pdf.*
 import be.jameswilliams.pdf.factory.*
 
-public class PDFBuilder extends BuilderSupport{
+public class PDFBuilder extends FactoryBuilderSupport{
 	private Logger log = Logger.getLogger(getClass().getName())
     private Map factories = new HashMap()
 	public writers = []
+	def registeredNodes = [:]
 	private elements = [ ]
     public shortcuts = [:]
     Map widgets = [:]
     def document
-    def metadata = ['title', 'subject', 'keywords', 'creator', 'author']
+    def debug = false
     
 	PDFBuilder() {
 		registerComponents()
@@ -55,7 +57,7 @@ public class PDFBuilder extends BuilderSupport{
 	}
 	
     void registerComponents() {
-		registerBeanFactory("document", Document.class)
+		registerFactory("document", new DocumentFactory())
 		registerFactory("paragraph", new TextComponentFactory(Paragraph.class))
 		registerFactory("phrase", new TextComponentFactory(Phrase.class))
 		registerFactory("chunk", new TextComponentFactory(Phrase.class))
@@ -65,130 +67,36 @@ public class PDFBuilder extends BuilderSupport{
 		registerBeanFactory("row", PdfPRow.class)
 		registerBeanFactory("alignedText", AlignedTextFacade.class)
 		registerBeanFactory("directContent", DirectContentFacade.class)
-		registerBeanFactory("page", PageFacade.class)
-		registerBeanFactory("widget", WidgetFacade.class)
+		registerBeanFactory("page", PageFacade)
+		registerFactory("widget", new WidgetFactory())
     }
 	
-    Object createNode(name) {
-		return createNode(name, null, null)
-    }
 	
-    Object createNode(name,value) {
-		return createNode(name,null,value)
-    }
 	
-    Object createNode(name, Map attributes) {
-		return createNode(name, attributes, null)
-    }
-	
-	Object createNode(name, Map attributes, value) {
-		def widget = null
-		def factory = (Factory) factories.get(name)
-		
-		String widgetName = (String) attributes?.remove("id")
-        if (factory == null) {
-            log.log(Level.WARNING, "Could not find match for name: " + name)
-            return null
-        }
-                
-        try {
-            widget = factory.newInstance(this, name, value, attributes)
-			if (widget == null) {
-                log.log(Level.WARNING, "Factory for name: " + name + " returned null")
-                return null
-            }
-            if (log.isLoggable(Level.FINE)) {
-                log.fine("For name: " + name + " created widget: " + widget)
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create component for '" + name + "' reason: " + e, e)
-        }
-		println name
-		processAttributes(name,widget, attributes)
-		
-		return widget
+	// These attributes get handled before the regular handleNodeAttributes function
+	// ie special cases
+	void preInstantiate( Object name, Map attributes, Object value) {
+		/*println name
+		println attributes
+		println value*/
+		if (document != null && !document.isOpen())
+        	document.open()
 	}
 	
-	void processAttributes(widgetName, widget, attributes) {
-		//println "processing attrib "+ widget
-		if ( widget instanceof Paragraph || widget instanceof Phrase) {
-			if (attributes?.text != null) {
-				//println widgetName
-				widget.add(new Chunk(attributes.remove("text")))
-			}
-			if (attributes?.margins != null) {
-				def margins = attributes.remove("margins")
-				document.setMargins(margins[0], margins[1], margins[2], margins[3])
-			}
-			if (attributes?.marginMirroring != null) {
-				document.setMarginMirroring(attributes.remove("marginMirroring"))
-			}
+	void postInstantiate( Object name, Map attributes, Object node ) {
+		if (name == "document") {
+			document = node
 		}
-		if ( widget instanceof Document) {
-			document = widget
-			if (attributes?.filename != null) {
-				def filename = attributes.remove('filename')
-				if (filename.endsWith('.pdf'))
-					writers.add(PdfWriter.getInstance(widget, new FileOutputStream(filename)))
-				else if (filename.endsWith('.rtf'))
-					writers.add(RtfWriter2.getInstance(widget, new FileOutputStream(filename)))
-				else writers.add(HtmlWriter.getInstance(widget, new FileOutputStream(filename)))
-			}
-			//margins need to be specially handled
-			if (attributes?.margins != null) {
-				def margins = attributes.remove("margins")
-				widget.setMargins(margins[0], margins[1], margins[2], margins[3])
-			}
-			if (attributes?.pdfVersion != null) {
-				def version = attributes.remove("pdfVersion")
-				def writer = writers.find { it instanceof PdfWriter }
-				if (writer != null)
-					writer.setPdfVersion(version)
-			}
-		}
-		/*else if (widgetName == "writeDirectTextContent") {
-			widget.add(attributes)
-		}*/
-		
-		//Handle metadata properties
-		//These must be set BEFORE the document is opened.
-		for (entry in metadata) {
-			if (attributes != null && attributes[entry] != null) {
-				def methodName = "add" + entry.substring(0,1).toUpperCase() + entry.substring(1,entry.size())
-				InvokerHelper.invokeMethod(document, methodName, attributes.remove(entry))
-			}
-		}
-		for (entry in attributes) {
-			println widgetName +" "+ entry
-            String property = entry.getKey().toString()
-            Object value = entry.getValue()
-			if (property != "content")
-				InvokerHelper.setProperty(widget, property, value)
-			else InvokerHelper.setProperty(widget, property, new StringBuffer(value))
-        }
-        
-        //Document instance is split so properties are properly set
-        //before opening the document and that the document is
-        //opened only once.
-        if (widget instanceof Document && !widget.isOpen())
-        	widget.open()
+		//println "${name} ${attributes} ${node}"
 	}
-	
-	void setParent(parent,child) {	}
 	
 	void nodeCompleted(parent,node) {
-		println parent
-		println node
-		if (node instanceof Chunk) {
-			println "node is chunk"
-			parent.add(node)
+		if (debug) {
+			//println parent
+			//println node
 		}
-		else if ((node instanceof Paragraph || node instanceof Phrase) && !(parent instanceof Chunk)) {
+		if ((node instanceof Paragraph || node instanceof Phrase) && !(parent instanceof Chunk)) {
 			parent.add(node)
-		}
-		else if (node instanceof Document) {
-			println "closing document"
-			node.close()
 		}
 		else if (node instanceof ImageFacade)
 			parent.add(node.process())
@@ -209,7 +117,14 @@ public class PDFBuilder extends BuilderSupport{
 		else if (node instanceof WidgetFacade) {
 			node.process(parent)
 		}
-		
+	}
+	
+	Object postNodeCompletion( Object parent, Object node ) {
+		if (node instanceof Document) {
+			if (debug)
+				println "closing document"
+			node.close()
+		}
 	}
 	
 	public void addShortcut(className, propName, shortcut) {
@@ -221,40 +136,4 @@ public class PDFBuilder extends BuilderSupport{
 			shortcuts.put(className, a)
 		}
     }
-	
-	//Utility functions borrowed from SwingBuilder.groovy in groovy main
-	public void registerFactory(String name, Factory factory) {
-        factories.put(name, factory);
-    }
-	
-	public void registerBeanFactory(String theName, final Class beanClass) {
-        registerFactory(theName, new BeanFactory(beanClass));
-    }
-	
-	public static boolean checkValueIsType(Object value, Object name, Class type) {
-        if (value != null) {
-            if (type.isAssignableFrom(value.getClass())) {
-                return true;
-            } else {
-                throw new RuntimeException("The value argument of $name must be of type $type.name");
-            }
-        } else {
-            return false;
-        }
-    }
-
-    public static boolean checkValueIsTypeNotString(Object value, Object name, Class type) {
-        if (value != null) {
-            if (type.isAssignableFrom(value.getClass())) {
-                return true;
-            } else if (value instanceof String) {
-                return false;
-            } else {
-                throw new RuntimeException("The value argument of $name must be of type $type.name or a String.");
-            }
-        } else {
-            return false;
-        }
-    }
-
 }
