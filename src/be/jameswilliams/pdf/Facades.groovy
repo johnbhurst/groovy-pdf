@@ -37,6 +37,7 @@ public class WidgetFacade implements Facade {
 public class PageFacade implements Facade {
 	def pageSize
 	def document
+	def empty
 	def content = []
 	
 	void add(item) {
