@@ -1,6 +1,6 @@
 //UnicodeExample.groovy
 //
-// Generates a PDF with the 14 Standard Type 1 Fonts (using FontFactory).
+// Generates an example using Unicode characters.
 // @author jwill
 import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.pdf.*
