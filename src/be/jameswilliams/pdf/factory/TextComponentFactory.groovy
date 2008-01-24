@@ -20,12 +20,13 @@ import com.lowagie.text.Chunk
 import com.lowagie.text.Phrase
 import com.lowagie.text.Paragraph
 import org.codehaus.groovy.runtime.InvokerHelper
-
+import com.lowagie.text.Element
 public class TextComponentFactory implements Factory {
 	
 	Class klazz
-	def nodeName
-
+	def nodeName 
+	def paraAttributes=[:]		// attributes that can only be processed
+							// at the Paragraph or Phrase level
 	public TextComponentFactory(Class klazz) {
 		this.klazz = klazz
 	}
@@ -60,9 +61,11 @@ public class TextComponentFactory implements Factory {
         }
         globalAttributes(builder, properties)
         handleNodeAttributes(chunk, properties)
-      //  if (widget instanceof Phrase || widget instanceof Paragraph)
+        if (widget instanceof Phrase || widget instanceof Paragraph) {
         	widget.add(chunk)
-       // else widget = new Chunk(chunk)
+        	handleNodeAttributes(widget,paraAttributes)	
+        }
+        else widget = chunk
         
         if (builder.debug)
         	println "returning "+widget.class
@@ -76,10 +79,12 @@ public class TextComponentFactory implements Factory {
     } 
     
     void globalAttributes(FactoryBuilderSupport builder, Map properties) {
+    	nodeName = properties.remove("name")
     	if (properties?.margins != null) {
     		if (builder.debug)
     			println "margins"
 			def margins = properties.remove("margins")
+			//builder.document.setMargins(margins)
 			builder.document.setMargins(margins[0], margins[1], margins[2], margins[3])
 			if (builder.debug) {
 			//	builder.document.properties.each { println it }
@@ -91,16 +96,37 @@ public class TextComponentFactory implements Factory {
 			def mirroring = properties.remove("marginMirroring")
 			builder.document.setMarginMirroring(mirroring)
 		}
+		if (properties?.spaceCharRatio != null) {
+			def spaceCharRatio = properties.remove("spaceCharRatio")
+			builder.writer.setSpaceCharRatio(spaceCharRatio)
+		}
+		prepareMap(properties)
     }
     
-    void handleNodeAttributes(Chunk chunk, Map properties) {  
-    	nodeName = properties.remove("name")
+    void prepareMap(Map properties) {
+    	["alignment"].each {
+    		if (properties.containsKey(it)) {
+	    		def value = properties.remove(it)
+	   			paraAttributes.put(it, value)
+	    	}
+    	}
+    }
+    
+    void handleNodeAttributes(Element chunk, Map properties) {  
+    	if (properties?.get("underline") != null) {
+    		def u = properties.remove("underline")
+    		if (u.size() == 6)
+    			chunk.setUnderline(u[0], u[1], u[2], u[3], u[4], u[5])
+    		else 
+    			chunk.setUnderline(u[0], u[1])
+    	}
     	for (entry in properties) {
             String property = entry.getKey().toString()
             Object val = entry.getValue()
 			if (property != "content")
 				InvokerHelper.setProperty(chunk, property, val)
 			else InvokerHelper.setProperty(chunk, property, val)
+			println "after property:"+property
         }
     }
     

@@ -36,11 +36,7 @@ public class DocumentFactory implements Factory {
 					println "Document/filename"
 				}
 				def filename = attributes.remove('filename')
-				if (filename.endsWith('.pdf'))
-					builder.writers.add(PdfWriter.getInstance(widget, new FileOutputStream(filename)))
-				else if (filename.endsWith('.rtf'))
-					builder.writers.add(RtfWriter2.getInstance(widget, new FileOutputStream(filename)))
-				else builder.writers.add(HtmlWriter.getInstance(widget, new FileOutputStream(filename)))
+				builder.writer = PdfWriter.getInstance(widget, new FileOutputStream(filename))
 		}
 		if (attributes?.margins != null) {
     		if (builder.debug)
@@ -55,7 +51,7 @@ public class DocumentFactory implements Factory {
 		}
 		if (attributes?.pdfVersion != null) {
 				def version = attributes.remove("pdfVersion")
-				def writer = builder.writers.find { it instanceof PdfWriter }
+				def writer = builder.writer
 				if (writer != null)
 					writer.setPdfVersion(version)
 		}

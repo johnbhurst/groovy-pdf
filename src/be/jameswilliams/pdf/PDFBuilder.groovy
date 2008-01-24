@@ -76,6 +76,13 @@ public class PDFBuilder extends FactoryBuilderSupport{
 	// These attributes get handled before the regular handleNodeAttributes function
 	// ie special cases
 	void preInstantiate( Object name, Map attributes, Object value) {
+		if (name == "page") {
+			def empty = attributes.remove("empty")
+			if (empty != null) {
+				def writer = writers.find { it instanceof PdfWriter }
+				writer?.setPageEmpty(empty)
+			}
+		}
 		/*println name
 		println attributes
 		println value*/
