@@ -38,14 +38,14 @@ cleanPattern << [ '**/*~' ,  '**/*.bak' ]
 cleanDirectory << [build_output_dir]
 clobberDirectory << build_output_dir
 
-Ant.path ( id : 'installationJarSet' ) { fileset ( dir : base_dir + '/lib' , includes : '*.jar' ) }
-Ant.path ( id : 'pdfbuilder' ) { fileset (dir :  distribution_dir, includes: '*.jar') }
-Ant.path ( id : 'groovy_jar_set' ) { fileset ( dir : groovyHome + '/lib' , includes : '*.jar' ) }
-Ant.taskdef ( name : 'groovyc' , classname : 'org.codehaus.groovy.ant.Groovyc' , classpathref : 'groovy_jar_set' )
-Ant.taskdef (name:'groovy',  classname:'org.codehaus.groovy.ant.Groovy' )
+path ( id : 'installationJarSet' ) { fileset ( dir : base_dir + '/lib' , includes : '*.jar' ) }
+path ( id : 'pdfbuilder' ) { fileset (dir :  distribution_dir, includes: '*.jar') }
+path ( id : 'groovy_jar_set' ) { fileset ( dir : groovyHome + '/lib' , includes : '*.jar' ) }
+taskdef ( name : 'groovyc' , classname : 'org.codehaus.groovy.ant.Groovyc' , classpathref : 'groovy_jar_set' )
+taskdef (name:'groovy',  classname:'org.codehaus.groovy.ant.Groovy' )
 makeManifest = {
-  Ant.mkdir ( dir : metadata_dir )
-  Ant.manifest ( file : metadata_dir + '/MANIFEST.MF' ) {
+  mkdir ( dir : metadata_dir )
+  manifest ( file : metadata_dir + '/MANIFEST.MF' ) {
     attribute ( name : 'Built-By' , value : 'jwill' )
     attribute ( name : 'Extension-Name' , value : 'groovy-pdf' )
     attribute ( name : 'Specification-Title' , value : 'PDF Builder' )
@@ -53,23 +53,23 @@ makeManifest = {
 }
 
 clean = {
-      Ant.delete(dir: distribution_dir + '/*.*')
+      delete(dir: distribution_dir + '/*.*')
 }
 
 target ( initialize : 'Initialize prior to a build' ) {
-  Ant.mkdir ( dir : build_output_dir )
-  Ant.mkdir ( dir : build_output_classes_dir )
-  Ant.mkdir ( dir : build_output_tests_dir )
-  Ant.mkdir ( dir : build_output_reports_dir )
-  Ant.mkdir ( dir : distribution_dir )
-  Ant.mkdir ( dir : groovy_tests_dir )
+  mkdir ( dir : build_output_dir )
+  mkdir ( dir : build_output_classes_dir )
+  mkdir ( dir : build_output_tests_dir )
+  mkdir ( dir : build_output_reports_dir )
+  mkdir ( dir : distribution_dir )
+  mkdir ( dir : groovy_tests_dir )
 }
 
 target ( compile : 'Compile all classes.' ) {
   clean()
   depends ( initialize )
   makeManifest ( )
-  Ant.groovyc ( srcdir : groovy_source_dir , destDir : build_output_classes_dir ) {
+  groovyc ( srcdir : groovy_source_dir , destDir : build_output_classes_dir ) {
    classpath {
 	pathelement (location : build_output_classes_dir)
 	path (refid : 'installationJarSet' )
@@ -79,7 +79,7 @@ target ( compile : 'Compile all classes.' ) {
 
 target ( compile_tests : 'Compile all the tests.' ) {
   depends ( compile )
-  Ant.groovyc ( srcdir : groovy_tests_dir , destdir : build_output_tests_dir ) {
+  groovyc ( srcdir : groovy_tests_dir , destdir : build_output_tests_dir ) {
     classpath {
       pathelement ( location : build_output_tests_dir )
       pathelement ( location : build_output_classes_dir )
@@ -91,7 +91,7 @@ target ( compile_tests : 'Compile all the tests.' ) {
 target ( test : 'Run all the tests in the build.' ) {
   depends ( compile_tests )
   depends ( distro )
-  Ant.junit ( printsummary : 'yes' ) {
+  junit ( printsummary : 'yes' ) {
     formatter ( type : 'plain' )
     batchtest ( fork : 'yes' , todir : build_output_reports_dir ) {
       fileset ( dir : build_output_tests_dir , includes : '**/*Test.class' )
@@ -108,11 +108,11 @@ target ( test : 'Run all the tests in the build.' ) {
 
 target ( 'run-examples' : 'Run all the example programs in the build.' ) {
   depends ( distro )
-  Ant.mkdir ( dir : example_dir + '/output' )
+  mkdir ( dir : example_dir + '/output' )
   for(file in new File(example_dir).listFiles()) {
 	println file.getPath()
   	if (file.isFile()) {
-		Ant.groovy(src: file.getPath()) {
+		groovy(src: file.getPath()) {
 			classpath {
 			  pathelement ( location : build_output_tests_dir )
 			  pathelement ( location : build_output_classes_dir )
@@ -128,8 +128,8 @@ target ( 'run-examples' : 'Run all the example programs in the build.' ) {
 target ( distro : 'Create a distribution of the project' ) {
   clean()
   depends( compile )
-  Ant.jar ( destfile : distribution_lib_dir + "/"+ jar_name , basedir : "build/classes", excludes: '*Test.*') 
-  Ant.copy ( todir : distribution_dir ) { 
+  jar ( destfile : distribution_lib_dir + "/"+ jar_name , basedir : "build/classes", excludes: '*Test.*') 
+  copy ( todir : distribution_dir ) { 
   		fileset ( dir : docs_dir , includes : '*.*' ) 
   }
 }
@@ -137,7 +137,7 @@ target ( distro : 'Create a distribution of the project' ) {
 target ('package': 'Create a zip file containing a full distribution of the project' ){
  depends ( distro ) 
   def zip_destination = "${distribution_dir}/${zip_name}"
-  Ant.zip ( destfile : "${zip_destination}.zip" ) {
+  zip ( destfile : "${zip_destination}.zip" ) {
     zipfileset ( dir : base_dir, includes: 'src/' )
     zipfileset ( dir : distribution_dir, excludes: '*.zip')
     zipfileset ( dir : base_dir, includes: 'docs/')
