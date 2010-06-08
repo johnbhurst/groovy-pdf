@@ -14,14 +14,14 @@
 //  @author James Williams
 
 package be.jameswilliams.pdf.factory
-import groovy.util.Factory
+import groovy.util.AbstractFactory
 import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.Chunk
 import com.lowagie.text.Phrase
 import com.lowagie.text.Paragraph
 import org.codehaus.groovy.runtime.InvokerHelper
 import com.lowagie.text.Element
-public class TextComponentFactory implements Factory {
+public class TextComponentFactory extends AbstractFactory {
 	
 	Class klazz
 	def nodeName 

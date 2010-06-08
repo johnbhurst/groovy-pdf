@@ -16,9 +16,9 @@ package be.jameswilliams.pdf.factory
 import com.lowagie.text.*
 import com.lowagie.text.pdf.*
 import be.jameswilliams.pdf.PDFBuilder
-import groovy.util.Factory 
+import groovy.util.AbstractFactory
 
-public class PageFactory implements Factory  {
+public class PageFactory extends AbstractFactory  {
 	def content = []
 	
 	Object newInstance( FactoryBuilderSupport builder, Object name, Object value, Map attributes ) {

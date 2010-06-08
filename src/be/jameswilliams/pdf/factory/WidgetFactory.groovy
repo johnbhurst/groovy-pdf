@@ -15,9 +15,9 @@
 package be.jameswilliams.pdf.factory
 import com.lowagie.text.*
 import com.lowagie.text.pdf.*
-import groovy.util.Factory 
+import groovy.util.AbstractFactory
 
-public class WidgetFactory implements Factory  {
+public class WidgetFactory extends AbstractFactory  {
 	Object newInstance( FactoryBuilderSupport builder, Object name, Object value, Map attributes ) {
 		//println "regNodes: "+builder.registeredNodes
 		if (builder.debug) {

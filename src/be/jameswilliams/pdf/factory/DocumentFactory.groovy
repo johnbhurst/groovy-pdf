@@ -14,7 +14,7 @@
 //  @author James Williams
 
 package be.jameswilliams.pdf.factory
-import groovy.util.Factory
+import groovy.util.AbstractFactory
 import be.jameswilliams.pdf.PDFBuilder
 import com.lowagie.text.Document
 import com.lowagie.text.DocumentException
@@ -23,7 +23,7 @@ import com.lowagie.text.rtf.RtfWriter2
 import com.lowagie.text.html.HtmlWriter
 import org.codehaus.groovy.runtime.InvokerHelper
 
-public class DocumentFactory implements Factory {
+public class DocumentFactory extends AbstractFactory {
 	def metadata = ['title', 'subject', 'keywords', 'creator', 'author']
 	Object widget
 	Object newInstance( FactoryBuilderSupport builder, Object name, Object value, Map attributes ) {
